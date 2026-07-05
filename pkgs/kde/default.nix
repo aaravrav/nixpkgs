@@ -88,6 +88,7 @@ let
         polkit-qt-1 = self.callPackage ./misc/polkit-qt-1 { };
         pulseaudio-qt = self.callPackage ./misc/pulseaudio-qt { };
 
+        aerothemeplasma-assets = self.callPackage ./third-party/aerothemeplasma-assets { };
         applet-window-buttons6 = self.callPackage ./third-party/applet-window-buttons6 { };
         dynamic-workspaces = self.callPackage ./third-party/dynamic-workspaces { };
         karousel = self.callPackage ./third-party/karousel { };
