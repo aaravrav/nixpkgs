@@ -14,8 +14,10 @@
   dbus,
   gdk-pixbuf,
   glib,
+  gnome,
   gtk4,
   libadwaita,
+  librsvg,
   openssl,
   pango,
   pipewire,
@@ -23,6 +25,7 @@
   desktop-file-utils,
   libxml2,
   libsecret,
+  webp-pixbuf-loader,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -77,6 +80,18 @@ stdenv.mkDerivation (finalAttrs: {
     libxml2
     libsecret
   ];
+
+  # Pull in WebP support for cached album art
+  postInstall = ''
+    export GDK_PIXBUF_MODULE_FILE="${
+      gnome._gdkPixbufCacheBuilder_DO_NOT_USE {
+        extraLoaders = [
+          librsvg
+          webp-pixbuf-loader
+        ];
+      }
+    }"
+  '';
 
   meta = {
     description = "MPD client with delusions of grandeur, made with Rust, GTK and Libadwaita";
