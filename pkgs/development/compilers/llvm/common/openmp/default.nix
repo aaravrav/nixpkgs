@@ -24,98 +24,123 @@
 
 assert lib.assertMsg (ompdGdbSupport -> ompdSupport) "OMPD GDB support requires OMPD support!";
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "openmp";
-  inherit version;
+stdenv.mkDerivation (
+  finalAttrs:
+  {
+    pname = "openmp";
+    inherit version;
 
-  src =
-    if monorepoSrc != null then
-      runCommand "openmp-src-${version}"
-        {
-          inherit (monorepoSrc) passthru;
-          strictDeps = true;
-          __structuredAttrs = true;
-        }
-        ''
-          mkdir -p "$out"
-          cp -r ${monorepoSrc}/cmake "$out"
-          cp -r ${monorepoSrc}/openmp "$out"
-        ''
-    else
-      src;
+    src =
+      if monorepoSrc != null then
+        runCommand "openmp-src-${version}"
+          {
+            inherit (monorepoSrc) passthru;
+            strictDeps = true;
+            __structuredAttrs = true;
+          }
+          (
+            ''
+              mkdir -p "$out"
+              cp -r ${monorepoSrc}/cmake "$out"
+              cp -r ${monorepoSrc}/openmp "$out"
+            ''
+            + lib.optionalString (lib.versionAtLeast release_version "23") ''
+              mkdir -p "$out/llvm"
+              cp -r ${monorepoSrc}/llvm/cmake "$out/llvm"
+              cp -r ${monorepoSrc}/llvm/utils "$out/llvm"
+              cp -r ${monorepoSrc}/third-party "$out"
+              cp -r ${monorepoSrc}/runtimes "$out"
+            ''
+          )
+      else
+        src;
 
-  sourceRoot = "${finalAttrs.src.name}/openmp";
+    sourceRoot = "${finalAttrs.src.name}/openmp";
 
-  outputs = [
-    "out"
-    "dev"
-  ];
-
-  patches =
-    lib.optional (lib.versionOlder release_version "19") (getVersionFile "openmp/fix-find-tool.patch")
-    ++ [
-      (getVersionFile "openmp/run-lit-directly.patch")
+    outputs = [
+      "out"
+      "dev"
     ];
 
-  nativeBuildInputs = [
-    cmake
-    python3
-    perl
-    ninja
-    pkg-config
-    lit
-  ];
+    patches =
+      lib.optional (lib.versionOlder release_version "19") (getVersionFile "openmp/fix-find-tool.patch")
+      ++ [
+        (getVersionFile "openmp/run-lit-directly.patch")
+      ];
 
-  propagatedNativeBuildInputs = [
-    checkPhaseThreadLimitHook
-  ];
+    nativeBuildInputs = [
+      cmake
+      python3
+      perl
+      ninja
+      pkg-config
+      lit
+    ];
 
-  buildInputs = [
-    llvm
-  ]
-  ++ lib.optionals (ompdSupport && ompdGdbSupport) [
-    python3
-  ];
+    propagatedNativeBuildInputs = [
+      checkPhaseThreadLimitHook
+    ];
 
-  strictDeps = true;
+    buildInputs = [
+      llvm
+    ]
+    ++ lib.optionals (ompdSupport && ompdGdbSupport) [
+      python3
+    ];
 
-  cmakeFlags = [
-    (lib.cmakeBool "LIBOMP_ENABLE_SHARED" (
-      !stdenv.hostPlatform.isStatic && stdenv.hostPlatform.hasSharedLibraries
-    ))
-    (lib.cmakeBool "LIBOMP_OMPD_SUPPORT" ompdSupport)
-    (lib.cmakeBool "LIBOMP_OMPD_GDB_SUPPORT" ompdGdbSupport)
-    (lib.cmakeFeature "CLANG_TOOL" "${clang-unwrapped}/bin/clang")
-    (lib.cmakeFeature "OPT_TOOL" "${llvm}/bin/opt")
-    (lib.cmakeFeature "LINK_TOOL" "${llvm}/bin/llvm-link")
-  ]
-  ++ devExtraCmakeFlags;
+    strictDeps = true;
 
-  doCheck = false;
+    cmakeFlags = [
+      (lib.cmakeBool "LIBOMP_ENABLE_SHARED" (
+        !stdenv.hostPlatform.isStatic && stdenv.hostPlatform.hasSharedLibraries
+      ))
+      (lib.cmakeBool "LIBOMP_OMPD_SUPPORT" ompdSupport)
+      (lib.cmakeBool "LIBOMP_OMPD_GDB_SUPPORT" ompdGdbSupport)
+      (lib.cmakeFeature "CLANG_TOOL" "${clang-unwrapped}/bin/clang")
+      (lib.cmakeFeature "OPT_TOOL" "${llvm}/bin/opt")
+      (lib.cmakeFeature "LINK_TOOL" "${llvm}/bin/llvm-link")
+    ]
+    ++ lib.optionals (lib.versionAtLeast release_version "23") [
+      (lib.cmakeFeature "LLVM_ENABLE_RUNTIMES" "openmp")
+    ]
+    ++ devExtraCmakeFlags;
 
-  checkTarget = "check-openmp";
+    doCheck = false;
 
-  preCheck = ''
-    patchShebangs ../tools/archer/tests/deflake.bash
-  '';
-
-  __structuredAttrs = true;
-
-  meta = llvm_meta // {
-    homepage = "https://openmp.llvm.org/";
-    description = "Support for the OpenMP language";
-    longDescription = ''
-      The OpenMP subproject of LLVM contains the components required to build an
-      executable OpenMP program that are outside the compiler itself.
-      Contains the code for the runtime library against which code compiled by
-      "clang -fopenmp" must be linked before it can run and the library that
-      supports offload to target devices.
+    checkTarget = "check-openmp";
+  }
+  // lib.optionalAttrs (lib.versionAtLeast release_version "23") {
+    # Apply OpenMP patches from the original source root, then configure through
+    # the runtimes driver: LLVM 23 removed the legacy standalone OpenMP build.
+    postPatch = ''
+      cd ../runtimes
     '';
-    # "All of the code is dual licensed under the MIT license and the UIUC
-    # License (a BSD-like license)":
-    license = with lib.licenses; [
-      mit
-      ncsa
-    ];
-  };
-})
+  }
+  // {
+    preCheck = ''
+      patchShebangs ${
+        if lib.versionAtLeast release_version "23" then "../../openmp" else ".."
+      }/tools/archer/tests/deflake.bash
+    '';
+
+    __structuredAttrs = true;
+
+    meta = llvm_meta // {
+      homepage = "https://openmp.llvm.org/";
+      description = "Support for the OpenMP language";
+      longDescription = ''
+        The OpenMP subproject of LLVM contains the components required to build an
+        executable OpenMP program that are outside the compiler itself.
+        Contains the code for the runtime library against which code compiled by
+        "clang -fopenmp" must be linked before it can run and the library that
+        supports offload to target devices.
+      '';
+      # "All of the code is dual licensed under the MIT license and the UIUC
+      # License (a BSD-like license)":
+      license = with lib.licenses; [
+        mit
+        ncsa
+      ];
+    };
+  }
+)
