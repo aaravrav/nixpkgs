@@ -1,0 +1,12 @@
+Set a window icon when using nixpkgs' unbundled Electron.
+
+--- a/packages/desktop/src/main/index.ts
++++ b/packages/desktop/src/main/index.ts
+@@ -129,6 +129,7 @@
+ 		x: state.x,
+ 		y: state.y,
+ 		autoHideMenuBar: true,
++		icon: path.join(__dirname, "..", "..", "icon.png"),
+ 		webPreferences: {
+ 			preload: path.join(__dirname, "..", "preload", "index.cjs"),
+ 			contextIsolation: true,

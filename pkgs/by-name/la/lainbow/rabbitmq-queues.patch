@@ -1,0 +1,14 @@
+Use exclusive temporary Celery queues with RabbitMQ 4.3 and later.
+This avoids enabling the deprecated transient non-exclusive queue feature.
+
+--- a/src/worker/celery_app.py
++++ b/src/worker/celery_app.py
+@@ -24,6 +24,8 @@
+ )
+ 
+ celery_app.conf.update(
++    control_queue_exclusive=True,
++    event_queue_exclusive=True,
+     task_track_started=True,
+     task_acks_late=True,
+     task_default_priority=1,

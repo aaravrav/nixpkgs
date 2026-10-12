@@ -9345,6 +9345,8 @@ self: super: with self; {
 
   lacuscore = callPackage ../development/python-modules/lacuscore { };
 
+  laion-clap = callPackage ../development/python-modules/laion-clap { };
+
   lakeside = callPackage ../development/python-modules/lakeside { };
 
   lammps = callPackage ../development/python-modules/lammps { inherit (pkgs) lammps; };
@@ -11435,6 +11437,8 @@ self: super: with self; {
   munkres = callPackage ../development/python-modules/munkres { };
 
   muon-optimizer = callPackage ../development/python-modules/muon-optimizer { };
+
+  muq = callPackage ../development/python-modules/muq { };
 
   murmurhash = callPackage ../development/python-modules/murmurhash { };
 
@@ -22809,6 +22813,8 @@ self: super: with self; {
   x690 = callPackage ../development/python-modules/x690 { };
 
   xapian = callPackage ../development/python-modules/xapian { inherit (pkgs) xapian; };
+
+  x-clip = callPackage ../development/python-modules/x-clip { };
 
   xarray = callPackage ../development/python-modules/xarray { };
 

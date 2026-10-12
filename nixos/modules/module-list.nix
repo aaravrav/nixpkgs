@@ -456,6 +456,7 @@
   ./services/audio/icecast.nix
   ./services/audio/jack.nix
   ./services/audio/jmusicbot.nix
+  ./services/audio/lainbow.nix
   ./services/audio/lavalink.nix
   ./services/audio/liquidsoap.nix
   ./services/audio/marytts.nix
@@ -471,6 +472,8 @@
   ./services/audio/roon-server.nix
   ./services/audio/slimserver.nix
   ./services/audio/snapserver.nix
+  ./services/audio/sola-mpd-subsonic.nix
+  ./services/audio/sola-mpd.nix
   ./services/audio/spotifyd.nix
   ./services/audio/squeezelite.nix
   ./services/audio/tts.nix

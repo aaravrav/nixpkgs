@@ -1,0 +1,13 @@
+Allow the service module to select a listening address through HOST.
+Without HOST, preserve the upstream listener behavior.
+
+--- a/packages/backend/src/index.ts
++++ b/packages/backend/src/index.ts
+@@ -50,6 +50,6 @@
+ });
+ 
+ const PORT = process.env.PORT || 3000;
+-server.listen(PORT, () => {
++server.listen({ port: Number(PORT), host: process.env.HOST }, () => {
+ 	console.info(`Listening on http://localhost:${PORT}`);
+ });

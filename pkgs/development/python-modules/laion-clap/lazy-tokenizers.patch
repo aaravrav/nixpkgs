@@ -1,0 +1,59 @@
+Do not download three unused tokenizer models when importing laion_clap.
+Initialize each tokenizer only when it is requested.
+
+--- a/src/laion_clap/training/data.py
++++ b/src/laion_clap/training/data.py
+@@ -17,7 +17,7 @@
+ from PIL import Image
+ from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
+ from torch.utils.data.distributed import DistributedSampler
+-from functools import partial
++from functools import lru_cache, partial
+ from pathlib import Path
+ import wget
+ import tempfile
+@@ -41,9 +41,14 @@
+ except ImportError:
+     torchaudio = None
+ 
+-bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+-roberta_tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+-bart_tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
++@lru_cache(maxsize=3)
++def get_tokenizer(tmodel):
++    tokenizer_class, model_name = {
++        "bert": (BertTokenizer, "bert-base-uncased"),
++        "roberta": (RobertaTokenizer, "roberta-base"),
++        "bart": (BartTokenizer, "facebook/bart-base"),
++    }[tmodel]
++    return tokenizer_class.from_pretrained(model_name)
+ 
+ def tokenizer(text, tmodel="roberta", max_length=77):
+     """tokenizer for different models
+@@ -55,7 +60,7 @@
+         return clip_tokenizer(text).squeeze(0)
+ 
+     elif tmodel == "bert":
+-        result = bert_tokenizer(
++        result = get_tokenizer("bert")(
+             text,
+             padding="max_length",
+             truncation=True,
+@@ -65,7 +70,7 @@
+         return {k: v.squeeze(0) for k, v in result.items()}
+ 
+     elif tmodel == "roberta":
+-        result = roberta_tokenizer(
++        result = get_tokenizer("roberta")(
+             text,
+             padding="max_length",
+             truncation=True,
+@@ -75,7 +80,7 @@
+         return {k: v.squeeze(0) for k, v in result.items()}
+ 
+     elif tmodel == "bart":
+-        result = bart_tokenizer(
++        result = get_tokenizer("bart")(
+             text,
+             padding="max_length",
+             truncation=True,

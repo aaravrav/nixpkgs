@@ -1,0 +1,12 @@
+Allow the service module to select a listening address through HOST.
+Without HOST, preserve the upstream listener behavior.
+
+--- a/plugins/subsonic/src/index.ts
++++ b/plugins/subsonic/src/index.ts
+@@ -14,5 +14,5 @@
+ );
+ 
+ const port = process.env.PORT || 3001;
+-http.createServer(app).listen(port);
++http.createServer(app).listen({ port: Number(port), host: process.env.HOST });
+ console.info(`Running on ${port}`);

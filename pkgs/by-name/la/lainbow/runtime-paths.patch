@@ -1,0 +1,136 @@
+Allow native deployments to configure their music, models and connection URLs.
+Models remain external and Hugging Face is kept offline by the launchers.
+
+--- a/src/domain/config.py
++++ b/src/domain/config.py
+@@ -8,15 +8,15 @@
+ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
+ POSTGRES_DB = os.getenv("POSTGRES_DB", "lainbow_db")
+ POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5433")
+-POSTGRES_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{DATABASE_SERVER_ENDPOINT}:{POSTGRES_PORT}/{POSTGRES_DB}"
+-CELERY_BACKEND_URL = f"db+postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{DATABASE_SERVER_ENDPOINT}:{POSTGRES_PORT}/{POSTGRES_DB}"
++POSTGRES_URL = os.getenv("POSTGRES_URL", f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{DATABASE_SERVER_ENDPOINT}:{POSTGRES_PORT}/{POSTGRES_DB}")
++CELERY_BACKEND_URL = os.getenv("CELERY_BACKEND_URL", f"db+postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{DATABASE_SERVER_ENDPOINT}:{POSTGRES_PORT}/{POSTGRES_DB}")
+ 
+ # RabbitMQ
+ RABBITMQ_USER = os.getenv("RABBITMQ_DEFAULT_USER", "user")
+ RABBITMQ_PASS = os.getenv("RABBITMQ_DEFAULT_PASS", "password")
+ RABBITMQ_HOST = f"{DATABASE_SERVER_ENDPOINT}"
+ RABBITMQ_PORT = os.getenv("RABBITMQ_PORT", "5672")
+-RABBITMQ_URL = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
++RABBITMQ_URL = os.getenv("RABBITMQ_URL", f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/")
+ 
+ # Milvus
+ MILVUS_HOST = f"{DATABASE_SERVER_ENDPOINT}"
+@@ -28,7 +28,8 @@
+ QDRANT_PORT = int(os.getenv("QDRANT_PORT_HTTP", "6333"))
+ 
+ # Music NAS folder path (in the container - you should not change this)
+-MUSIC_NAS_ROOT_DIR = "/music_library"
++MUSIC_NAS_ROOT_DIR = os.getenv("MUSIC_NAS_ROOT_DIR", "/music_library")
++MODELS_ROOT_DIR = os.getenv("MODELS_ROOT_DIR", "./models")
+ 
+ # Inference API
+ INFERENCE_SERVER_ENDPOINT = os.getenv("INFERENCE_SERVER_ENDPOINT", "host.docker.internal")
+--- a/src/api/core/text_embedding.py
++++ b/src/api/core/text_embedding.py
+@@ -1,5 +1,7 @@
+ import logging
+ import os
++
++from domain.config import MODELS_ROOT_DIR
+ from functools import lru_cache
+ from typing import Any, cast
+ 
+@@ -12,9 +14,9 @@
+ logger = logging.getLogger(__name__)
+ 
+ CLAP_AUDIO_MODEL_TYPE = "HTSAT-base"
+-CLAP_MODEL_CHECKPOINT_PATH = "./models/music_audioset_epoch_15_esc_90.14.pt"
++CLAP_MODEL_CHECKPOINT_PATH = os.path.join(MODELS_ROOT_DIR, "music_audioset_epoch_15_esc_90.14.pt")
+ MUQ_MULAN_REPO_ID = "OpenMuQ/MuQ-MuLan-large"
+-MUQ_MULAN_MODEL_PATH = os.path.join("./models", MUQ_MULAN_REPO_ID.split("/")[-1])
++MUQ_MULAN_MODEL_PATH = os.path.join(MODELS_ROOT_DIR, MUQ_MULAN_REPO_ID.split("/")[-1])
+ 
+ 
+ class TextEmbeddingService:
+--- a/src/inference/models/clap_model.py
++++ b/src/inference/models/clap_model.py
+@@ -1,6 +1,8 @@
+ import gc
+ import logging
+ import os
++
++from domain.config import MODELS_ROOT_DIR
+ from typing import cast
+ 
+ import laion_clap
+@@ -12,7 +14,7 @@
+ logger = logging.getLogger(__name__)
+ 
+ AUDIO_MODEL_TYPE = "HTSAT-base"
+-MODEL_CHECKPOINT_PATH = "./models/music_audioset_epoch_15_esc_90.14.pt"
++MODEL_CHECKPOINT_PATH = os.path.join(MODELS_ROOT_DIR, "music_audioset_epoch_15_esc_90.14.pt")
+ 
+ 
+ class CLAPModel(InferenceModel):
+--- a/src/inference/models/mert_model.py
++++ b/src/inference/models/mert_model.py
+@@ -1,6 +1,8 @@
+ import gc
+ import logging
+ import os
++
++from domain.config import MODELS_ROOT_DIR
+ from typing import cast
+ 
+ import numpy as np
+@@ -12,7 +14,7 @@
+ logger = logging.getLogger(__name__)
+ 
+ MODEL_NAME = "m-a-p/MERT-v1-330M"
+-LOCAL_MODEL_PATH = "./models/MERT-v1-330M"
++LOCAL_MODEL_PATH = os.path.join(MODELS_ROOT_DIR, "MERT-v1-330M")
+ START_LAYER = 12
+ NUM_LAYERS_TO_AVERAGE = 4
+ 
+--- a/src/inference/models/muq_model.py
++++ b/src/inference/models/muq_model.py
+@@ -1,6 +1,8 @@
+ import gc
+ import logging
+ import os
++
++from domain.config import MODELS_ROOT_DIR
+ 
+ import numpy as np
+ import torch
+@@ -11,7 +13,7 @@
+ logger = logging.getLogger(__name__)
+ 
+ REPO_ID = "OpenMuQ/MuQ-large-msd-iter"
+-MODEL_PATH = os.path.join("./models", REPO_ID.split("/")[-1])
++MODEL_PATH = os.path.join(MODELS_ROOT_DIR, REPO_ID.split("/")[-1])
+ 
+ 
+ class MuQModel(InferenceModel):
+--- a/src/inference/models/muq_mulan_model.py
++++ b/src/inference/models/muq_mulan_model.py
+@@ -1,6 +1,8 @@
+ import gc
+ import logging
+ import os
++
++from domain.config import MODELS_ROOT_DIR
+ 
+ import numpy as np
+ import torch
+@@ -11,7 +13,7 @@
+ logger = logging.getLogger(__name__)
+ 
+ REPO_ID = "OpenMuQ/MuQ-MuLan-large"
+-MODEL_PATH = os.path.join("./models", REPO_ID.split("/")[-1])
++MODEL_PATH = os.path.join(MODELS_ROOT_DIR, REPO_ID.split("/")[-1])
+ 
+ 
+ class MuQMuLanModel(InferenceModel):

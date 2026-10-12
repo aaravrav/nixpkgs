@@ -1006,6 +1006,7 @@ in
   labgrid = runTest ./labgrid.nix;
   lact = runTest ./lact.nix;
   ladybird = runTest ./ladybird.nix;
+  lainbow = runTest ./lainbow.nix;
   languagetool = runTest ./languagetool.nix;
   lanraragi = runTest ./lanraragi.nix;
   lasuite-docs = runTest ./web-apps/lasuite-docs.nix;
@@ -1715,6 +1716,7 @@ in
   soft-serve = runTest ./soft-serve.nix;
   sogo = runTest ./sogo.nix;
   soju = runTest ./soju.nix;
+  sola-mpd = runTest ./sola-mpd.nix;
   solanum = runTest ./solanum.nix;
   sonarr = runTest ./sonarr.nix;
   sonic-server = runTest ./sonic-server.nix;
